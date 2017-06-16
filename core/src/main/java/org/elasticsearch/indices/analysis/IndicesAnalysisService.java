@@ -38,10 +38,21 @@ import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
  */
 public class IndicesAnalysisService extends AbstractComponent implements Closeable {
 
+    public MissingAnalyzerHandler getMissingAnalyzerHandler() {
+        return missingAnalyzerHandler;
+    }
+
+    public void setMissingAnalyzerHandler(MissingAnalyzerHandler missingAnalyzerHandler) {
+        this.missingAnalyzerHandler = missingAnalyzerHandler;
+    }
+
     private final Map<String, PreBuiltAnalyzerProviderFactory> analyzerProviderFactories = ConcurrentCollections.newConcurrentMap();
     private final Map<String, PreBuiltTokenizerFactoryFactory> tokenizerFactories = ConcurrentCollections.newConcurrentMap();
     private final Map<String, PreBuiltTokenFilterFactoryFactory> tokenFilterFactories = ConcurrentCollections.newConcurrentMap();
     private final Map<String, PreBuiltCharFilterFactoryFactory> charFilterFactories = ConcurrentCollections.newConcurrentMap();
+    
+    private MissingAnalyzerHandler missingAnalyzerHandler;
+    
 
     public IndicesAnalysisService() {
         super(EMPTY_SETTINGS);
@@ -139,6 +150,8 @@ public class IndicesAnalysisService extends AbstractComponent implements Closeab
     public Analyzer analyzer(String name) {
         PreBuiltAnalyzerProviderFactory analyzerProviderFactory = analyzerProviderFactory(name);
         if (analyzerProviderFactory == null) {
+            if (this.missingAnalyzerHandler != null)
+                return this.missingAnalyzerHandler.analyzerMissing(name);
             return null;
         }
         return analyzerProviderFactory.analyzer();

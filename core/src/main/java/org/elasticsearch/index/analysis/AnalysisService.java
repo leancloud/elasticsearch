@@ -71,6 +71,8 @@ public class AnalysisService extends AbstractIndexComponent implements Closeable
                 charFilterFactoryFactories, tokenFilterFactoryFactories);
 
     }
+    
+    private IndicesAnalysisService indicesAnalysisService;
 
     //package private for testing
     AnalysisService(Index index, Settings indexSettings, @Nullable IndicesAnalysisService indicesAnalysisService,
@@ -79,6 +81,7 @@ public class AnalysisService extends AbstractIndexComponent implements Closeable
                            @Nullable Map<String, CharFilterFactoryFactory> charFilterFactoryFactories,
                            @Nullable Map<String, TokenFilterFactoryFactory> tokenFilterFactoryFactories) {
         super(index, indexSettings);
+        this.indicesAnalysisService = indicesAnalysisService;
         Settings defaultSettings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.indexCreated(indexSettings)).build();
         Map<String, TokenizerFactory> tokenizers = newHashMap();
         if (tokenizerFactoryFactories != null) {
@@ -286,7 +289,7 @@ public class AnalysisService extends AbstractIndexComponent implements Closeable
         }
     }
 
-    public NamedAnalyzer analyzer(String name) {
+    public NamedAnalyzer analyzer(String name) {       
         NamedAnalyzer analyzer = analyzers.get(name);
         if (analyzer != null) {
             return analyzer;
@@ -296,6 +299,9 @@ public class AnalysisService extends AbstractIndexComponent implements Closeable
         if (analyzer != null) {
             DEPRECATION_LOGGER.deprecated("Deprecated analyzer name [" + name + "], use [" + underscoreName + "] instead");
         }
+        String indexName = this.index.getName();
+        if (analyzer == null && name.equals("$index") && indicesAnalysisService.analyzer(indexName) != null)
+            analyzer = new NamedAnalyzer(name, indicesAnalysisService.analyzer(indexName));
         return analyzer;
     }
 
